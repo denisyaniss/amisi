@@ -1,1 +1,526 @@
-J'ai créé un système qui permet de gérer une cinema.
+import csv
+import os
+from datetime import datetime
+import string
+from random import randint, choice
+
+FICHIER = "cinema.csv"
+FICHIER_RESET = "historique_reset.csv"
+FICHIER_AVIS = "avis_clients.csv"
+
+IDS_AUTORISES = [
+    "25td01cm",
+    "25kl02cm",
+    "25fh03cm",
+    "25hg04cm",
+    "25km05cm",
+    "25yo06cm",
+    "25tk07cm",
+    "25tm08cm"
+]
+
+# MENU RETOUR
+
+def retour_menu():
+    while True:
+        try:
+            print("\n1. Menu Principal")
+            print("2. Quitter\n")
+
+            choice = int(input("Entrez une option : "))
+
+            if choice == 1:
+                menu_principal()
+                return
+
+            elif choice == 2:
+                print("\nRequête annulée !")
+                return
+
+            else:
+                print("Option invalide !")
+
+        except:
+            print("Veuillez entrer un nombre.")
+
+# Génerer les tickets automatiquement
+def generator_tickets( ) :
+	nombre_min = 5
+	nombre_max = 8
+	all_chars = string.digits + string.ascii_letters + string.punctuation
+	ticket = " ".join(choice(all_chars) for x in range(randint(nombre_min, nombre_max)))
+	return ticket
+
+
+# OBTENIR UNE PLACE
+
+def obtenir_place():
+
+    nom = input("\nEntrez votre nom : ")
+
+    try:
+        age = int(input("Quel est votre âge : "))
+        if age > 130:
+        	print("\nÂge trop grand !")
+        	obtenir_place()
+        	return
+        elif age <= 5:
+        	print("\nÂge très petit ! Entrer gratuit.")
+        	menu_principal()
+        	return
+
+    except:
+        print("\nVeuillez entrer un âge valide.")
+        obtenir_place()
+        return
+        
+    choix = input("Souhaitez-vous du PipCon ? oui/non : ").lower()
+    	
+    if age < 18 and choix == "oui":
+    	montant = 12
+    elif age < 18 and choix == "non":
+    	montant = 7
+    elif age >= 18 and choix == "oui":
+    	montant = 15
+    elif age >= 18 and choix == "non":
+    	montant = 10
+
+    else:
+    	print("\nVous devez repondre soit oui / soit non !")
+    	obtenir_place()
+    	return
+
+    date = datetime.now().strftime("%d/%m/%Y | %H:%M")
+
+    with open(FICHIER, "a", newline="", encoding="utf-8") as fichier:
+
+        writer = csv.writer(fichier)
+
+        writer.writerow([nom, age, montant, date])
+
+    print(f"\nPlace réservée avec succès !\nVoici votre ticket:  {generator_tickets()} ")
+    print(f"Montant a payé {montant}$")
+
+    retour_menu()
+
+
+# VOIR LES PRIX
+
+def voir_prix():
+
+    print("\n=== LISTE DES PRIX ===\n")
+    print("Mineur = 7€")
+    print("Majeur = 10€")
+    print("PipCon = 5€")
+
+    retour_menu()
+
+# AFFICHER HISTORIQUE
+
+def afficher_historique():
+
+    if not os.path.exists(FICHIER):
+        print("\nAucun paiement enregistré.")
+        return
+
+    total = 0
+    clients = 0
+
+    with open(FICHIER, "r", encoding="utf-8") as fichier:
+
+        reader = csv.reader(fichier)
+
+        print("\n=== PAIEMENTS ===\n")
+
+        for index, ligne in enumerate(reader):
+
+            if len(ligne) < 4:
+                continue
+
+            if ligne[0] == "Nom":
+                continue
+
+            nom = ligne[0]
+            age = ligne[1]
+            montant = ligne[2]
+            date = ligne[3]
+
+            print(f"{index}. Nom : {nom}")
+            print(f"   Age : {age} ans")
+            print(f"   Montant : {montant}€")
+            print(f"   Date : {date}")
+            print("__________________________")
+
+            total += int(montant)
+            clients += 1
+
+    print(f"\nTOTAL ENCAISSÉ : {total}€")
+    print(f"Nombre total de clients : {clients}")
+
+    retour_menu()
+    return
+
+
+# VERIFIER IDENTIFIANT
+
+def verifier_id():
+
+    compteur = 0
+
+    while True:
+
+        print("\n=== INTERFACE CAISSIER ===\n")
+        print("Rassurez-vous que vous avez un identifiant unique pour avoir accès à ces option | soit vous retournez au menu principal.\n")
+
+        print("1. Voir les paiements")
+        print("2. Retourner au menu principal")
+        print("3. Réinitialiser les paiements")
+        print("4. Voir les réinitialisations")
+        print("5. Quitter\n")
+
+        try:
+            choice = int(input("Entrez une option : "))
+
+        except:
+            print("\nVeuillez entrer un nombre.")
+            continue
+
+        if choice == 1:
+        	while True:
+        		identifiant = input("\nEntrez votre identifiant : ")
+        		if identifiant not in IDS_AUTORISES:
+        			print("\nIdentifiant incorrect !")
+        			compteur += 1
+        			if compteur >= 3:
+        			         print(f"\nAccès refusé. | {compteur} tentatives")
+        			         retour_menu()
+        			         return
+        		else:
+        		      	print("\nBienvenue Chef !")
+        		      	afficher_historique()
+        		      	return
+
+        elif choice == 2:
+            menu_principal()
+            break
+
+        elif choice == 3:
+            reinitialiser_paiement()
+            break
+
+        elif choice == 4:
+            voir_reinitialisation()
+            break
+
+        elif choice == 5:
+            print("\nProgramme annulé !")
+            break
+
+        else:
+            print("Option invalide !")
+
+
+# REINITIALISER PAIEMENTS
+
+def reinitialiser_paiement():
+
+    choice = input(
+        "\nVoulez-vous réinitialiser les paiements ? oui/non : "
+    ).lower()
+    compteur = 0
+
+    if choice == "oui":
+
+        while True:
+
+            identifiant = input("Entrez votre identifiant : ")
+
+            if identifiant in IDS_AUTORISES:
+
+                with open(FICHIER, "w", newline="", encoding="utf-8") as fichier:
+
+                    writer = csv.writer(fichier)
+
+                    writer.writerow(["Nom", "Age", "Montant", "Date"])
+
+                date_reset = datetime.now().strftime("%d/%m/%Y | %H:%M:%S")
+
+                with open(
+                    FICHIER_RESET,
+                    "a",
+                    newline="",
+                    encoding="utf-8"
+                ) as historique:
+
+                    writer = csv.writer(historique)
+
+                    writer.writerow([identifiant, date_reset])
+
+                print("\nRéinitialisation effectuée avec succès !")
+
+                retour_menu()
+                return
+
+            else:
+                print("\nIdentifiant incorrect !\n")
+                compteur += 1
+                if compteur >= 3:
+                	print(f"\nAccès réfusé ! | {compteur} tentatives.")
+                	retour_menu()
+                	return
+
+    elif choice == "non":
+        retour_menu()
+
+    else:
+        print("Option invalide !")
+
+
+# Voir l'historique de reinitialisation
+
+def voir_reinitialisation():
+
+    if not os.path.exists(FICHIER_RESET):
+        print("\nAucune réinitialisation enregistrée.")
+        retour_menu()
+        return
+
+    with open(FICHIER_RESET, "r", encoding="utf-8") as fichier:
+
+        reader = csv.reader(fichier)
+
+        print("\n=== HISTORIQUE DES RÉINITIALISATIONS ===\n")
+
+        for index, ligne in enumerate(reader, start=1):
+
+            if len(ligne) < 2:
+                continue
+
+            auteur = ligne[0]
+            date = ligne[1]
+
+            print(
+                f"{index}. Réinitialisé par : {auteur} | Date : {date}"
+            )
+
+    retour_menu()
+
+
+# Donner un avis
+
+def donner_avis():
+
+    print("\n1. Donner votre avis")
+    print("2. Voir les avis")
+    print("3. Réinitialiser les avis\n")
+
+    try:
+        choix = int(input("Choisir une option : "))
+
+    except:
+        print("Veuillez entrer un nombre.")
+        donner_avis()
+        return
+
+    if choix == 1:
+
+        prenom = input("\nEntrez votre prénom : ")
+        avis = input("Rédigez votre avis : ")
+
+        try:
+            note = int(input("Donnez une note /5 : "))
+
+        except:
+            print("\nLa note doit être un nombre.")
+            donner_avis()
+            return
+
+        if note < 1 or note > 5:
+            print("\nLa note doit être entre 1 et 5.")
+            donner_avis()
+            return
+
+        date = datetime.now().strftime("%d/%m/%Y | %H:%M")
+
+        with open(
+            FICHIER_AVIS,
+            "a",
+            newline="",
+            encoding="utf-8"
+        ) as fichier:
+
+            writer = csv.writer(fichier)
+
+            writer.writerow([prenom, avis, note, date])
+
+        print("\nAvis enregistré avec succès !")
+
+        retour_menu()
+
+    elif choix == 2:
+        voir_avis()
+        return
+
+    elif choix == 3:
+    	reinitialiser_avis()
+    	return
+    else:
+        print("\nOption invalide !")
+        donner_avis()
+        return
+
+
+
+# Voir les avis
+
+def voir_avis():
+
+    if not os.path.exists(FICHIER_AVIS):
+        print("\nAucun avis pour le moment !")
+        retour_menu()
+        return
+
+    with open(FICHIER_AVIS, "r", encoding="utf-8") as fichier:
+
+        reader = csv.reader(fichier)
+
+        print("\n=== LISTE DES AVIS ===\n")
+
+        for index, ligne in enumerate(reader):
+
+            if len(ligne) < 4:
+                continue
+
+            prenom = ligne[0]
+            avis = ligne[1]
+            note = ligne[2]
+            date = ligne[3]
+
+            try:
+                etoiles = "⭐" * int(note)
+
+            except:
+                etoiles = "Note invalide"
+
+            print(f"{index}. Prénom : {prenom}")
+            print(f"Avis : {avis}")
+            print(f"Note : {etoiles} ({note}/5)")
+            print(f"Date : {date}")
+            print("___________________")
+
+    retour_menu()
+    return
+
+
+def reinitialiser_avis():
+	if not os.path.exists(FICHIER_AVIS):
+		print("\nAucun avis pour le moment !")
+		menu_principal()
+		return
+	with open(FICHIER_AVIS, "w", encoding="utf-8") as fichier:
+		writer = csv.writer(fichier)
+		writer.writerow(["Nom", "Avis", "Date"])
+	print("\nRéinitialisation réussie !\n")
+	retour_menu()
+	return
+
+
+# Nombre de Places
+
+def nombre_place():
+
+    places = 100
+    clients = 0
+
+    if os.path.exists(FICHIER):
+
+        with open(FICHIER, "r", encoding="utf-8") as fichier:
+
+            reader = csv.reader(fichier)
+
+            for ligne in reader:
+
+                if len(ligne) < 4:
+                    continue
+
+                if ligne[0] == "Nom":
+                    continue
+
+                clients += 1
+
+    places -= clients
+
+    if places >= 50:
+
+        print(
+            f"\nIl reste beaucoup de places | "
+            f"{places} places restantes."
+        )
+
+    elif 20 <= places < 50:
+
+        print(
+            f"\nLe nombre de places devient faible | "
+            f"{places} places restantes."
+        )
+
+    else:
+
+        print(
+            f"\nAttention, très peu de places restantes ! | "
+            f"{places} places restantes."
+        )
+
+    retour_menu()
+    return
+
+print("\n\t\t^^ DENIS CINÉ ^^")
+print("\t=== RÉSERVER VOTRE PLACE ===\n")
+    
+def menu_principal():
+    
+    print("\n== MENU PRINCIPALE ==\n")
+
+    print("1. Voir les prix")
+    print("2. Obtenir une place")
+    print("3. Voir les paiements")
+    print("4. Voir les places")
+    print("5. Donner un avis")
+    print("6. Quitter\n")
+
+    try:
+        choice = int(input("Sélectionnez une option : "))
+
+    except ValueError:
+        print("\nVeuillez entrer un nombre.")
+        menu_principal()
+
+    if choice == 1:
+        voir_prix()
+
+    elif choice == 2:
+        obtenir_place()
+
+    elif choice == 3:
+        verifier_id()
+
+    elif choice == 4:
+        nombre_place()
+
+    elif choice == 5:
+        donner_avis()
+
+    elif choice == 6:
+        print("\nMerci ! À très bientôt.")
+        return
+
+    else:
+        print("\nOption invalide !")
+        menu_principal()
+
+
+# =========================
+# LANCEMENT
+# =========================
+if __name__ == "__main__":
+    menu_principal()
