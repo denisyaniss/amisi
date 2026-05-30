@@ -1,4 +1,4 @@
-# Salut 👋, je suis Denis
+# Salut, je suis Denis Yaniss
 
 💻 Passionné de programmation
 🔐 Intéressé par la cybersécurité
